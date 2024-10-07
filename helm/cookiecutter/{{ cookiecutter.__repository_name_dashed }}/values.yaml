@@ -1,0 +1,16 @@
+name: &name {{ cookiecutter.__repository_name_dashed }}
+
+# -- Common extra labels for the chart objects
+labels:
+  app: *name
+  type: driver
+  project: aip
+
+image:
+  repository: gcr.io/your-repository/{{ cookiecutter.__repository_name_dotted }}
+  pullPolicy: IfNotPresent
+
+configMapRefs:
+{%- for configmap in cookiecutter.__selected_configmaps.split(',') %}
+  - {{ configmap }}
+{%- endfor %}

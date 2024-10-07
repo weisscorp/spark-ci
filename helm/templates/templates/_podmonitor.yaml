@@ -1,0 +1,32 @@
+{{- define "templates.podmonitor" -}}
+{{- $templates := dict "Values" .Values.templates -}}
+{{- $noTemplates := omit .Values "templates" -}}
+{{- $overrides := dict "Values" $noTemplates -}}
+{{- $noValues := omit . "Values" -}}
+{{- with merge $noValues $overrides $templates -}}
+
+{{- if and (.Values.metrics.enabled) (eq .Values.metrics.kind "PodMonitor") }}
+apiVersion: monitoring.coreos.com/v1
+kind: {{ .Values.metrics.kind }}
+metadata:
+  name: {{ include "templates.fullname" . }}
+  labels:
+    {{- include "templates.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitorLabels | default dict }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "templates.selectorLabels" . | nindent 6 }}
+  podMetricsEndpoints:
+    {{- range .Values.metrics.endpoints }}
+    - port: {{ .name | default .port }}
+      interval: {{ .interval | default "30s" }}
+      path: {{ .path | default "/metrics" }}
+    {{- end }}
+  namespaceSelector:
+    any: true
+{{- end -}}
+{{- end -}}
+{{- end -}}

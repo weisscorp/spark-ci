@@ -1,0 +1,128 @@
+# -- Image pull secret handling section
+imagePullSecret:
+  use: true   # 'true' if service account should use the secret explicitly and 'false' to rely on Cloud Access scopes (e.g. for GCP)
+  create: false   #  'true' to create the secret through the Helm chart and 'false' to have it created externally
+  # -- Base64-encoded JSON key file for GCP service account authorized to pull images from Container Registry
+  # In order to obtain the key value, run the following command, pointing to the local gcr.json file with stored credentials, and copy the value of the '.dockerconfigjson' key from the output:
+  #   $ kubectl create secret docker-registry gcr-key --docker-server=gcr.io --docker-username=_json_key --docker-password="$(cat ~/gcr.json)" --docker-email=root@localhost --dry-run -o yaml
+  content:
+
+image:
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+  repository: ""
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+persistence:
+  enabled: false
+  storageClass: "standard"
+  size: 8Gi
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+
+resources: {}
+#   limits:
+#     cpu: 100m
+#     memory: 512Mi
+#   requests:
+#     cpu: 50m
+#     memory: 128Mi
+
+# env: {}
+
+secrets: {}
+
+configMaps: {}
+
+
+metrics:
+  enabled: false
+  serviceMonitorLabels:
+    release: prometheus
+  kind: PodMonitor #PodMonitor #ServiceMonitor
+  endpoints:
+    - name: jmx-exporter
+      path: /
+      port: 8090
+      interval: 30s
+
+volumeMounts:
+ - name: checkpoint
+   mountPath: /app/checkpoints
+
+env:
+  CHECKPOINT_ROOT_DIR: file:///opt/spark/work-dir/checkpoints
+
+secretRefsDefault: []
+
+configMapRefsDefault:
+  - common-environment-variables-configmap
+
+command: {}
+
+volumes:
+  - name: checkpoint
+    type: persistentVolumeClaim
+    claimName: spark-checkpoint-pvc
+    mountPath: /opt/spark/work-dir/checkpoints
+
+driver:
+  coreLimit: 1200m
+  # coreRequest: 1000m
+  cores: 1
+  memory: 512m
+  # memoryOverhead: 1024m
+
+executor:
+  cores: 1
+  # coreLimit: 1200m
+  # coreRequest: 1000m
+  instances: 1
+  memory: 512m
+  # memoryOverhead: 1024m
+
+monitoring:
+  exposeDriverMetrics: true
+  exposeExecutorMetrics: true
+  metricsProperties: |
+    *.sink.jmx.class=org.apache.spark.metrics.sink.JmxSink
+    *.sink.prometheusServlet.class=org.apache.spark.metrics.sink.PrometheusServlet
+    *.sink.prometheusServlet.path=/metrics/prometheus
+    driver.sink.prometheusServlet.class=org.apache.spark.metrics.sink.PrometheusServlet
+    driver.sink.prometheusServlet.path=/metrics/prometheus
+    executor.sink.prometheusServlet.class=org.apache.spark.metrics.sink.PrometheusServlet
+    executor.sink.prometheusServlet.path=/metrics/prometheus
+    *.source.jvm.class=org.apache.spark.metrics.source.JvmSource
+    executor.source.jvm.class=org.apache.spark.metrics.source.JvmSource
+    driver.source.jvm.class=org.apache.spark.metrics.source.JvmSource
+  prometheus:
+    jmxExporterJar: "/opt/spark/jars/jmx_prometheus_javaagent.jar"
+    port: 8090
+
+#https://github.com/kubeflow/spark-operator/blob/master/docs/api-docs.md#sparkuiconfiguration
+sparkUIOptions:
+  serviceType: LoadBalancer
+
+mainApplicationFile: "local:///opt/spark/work-dir/main.py"
+
+sparkVersion: 3.5.3
+mode: cluster
+pythonVersion: '3'
+type: Python
+restartPolicy: Always
+
+executorAnnotations: {}
+
+driverAnnotations:
+  vault.security.banzaicloud.io/vault-addr: "https://vault.your.domain.com:8200"
+  vault.security.banzaicloud.io/vault-skip-verify: "true"
+  #custom prometheus monitoring
+  spark.prometheus.io/path: /
+  spark.prometheus.io/scrape: "true"
+  spark.prometheus.io/port: "9099"

@@ -1,0 +1,97 @@
+{{- define "templates.sparkapplication" -}}
+{{- $templates := dict "Values" .Values.templates -}}
+{{- $noTemplates := omit .Values "templates" -}}
+{{- $overrides := dict "Values" $noTemplates -}}
+{{- $noValues := omit . "Values" -}}
+{{- with merge $noValues $overrides $templates -}}
+
+---
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: {{ include "templates.fullname" . }}
+spec:
+  driver:
+  {{- with .Values.driver }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+    labels:
+      {{- include "templates.labels" . | nindent 6 }}
+      version: "{{ .Values.sparkVersion }}"
+    {{- if .Values.driverAnnotations }}
+    annotations: {{- toYaml .Values.driverAnnotations | nindent 6 }}
+    {{- end }}
+    env:
+      {{- range $key, $value := .Values.env }}
+      - name: {{ $key | quote }}
+        value: {{ $value | quote }}
+      {{- end }}
+    envFrom:
+      {{- range .Values.configMapRefsDefault }}
+      - configMapRef:
+          name: {{ . }}
+      {{- end }}
+      {{- range .Values.configMapRefs }}
+      - configMapRef:
+          name: {{ . }}
+      {{- end }}
+      {{- range .Values.secretRefsDefault }}
+      - secretRef:
+          name: {{ . }}
+      {{- end }}
+      {{- range .Values.secretRefs }}
+      - secretRef:
+          name: {{ . }}
+      {{- end }}
+    serviceAccount: {{ include "templates.serviceAccountName" . }}
+    volumeMounts:
+    {{- range .Values.volumes }}
+    - name: {{ .name }}
+      mountPath: {{ .mountPath }}
+    {{- end }}
+  executor:
+  {{- with .Values.executor }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+    labels:
+      {{- include "templates.labels" . | nindent 6 }}
+      version: "{{ .Values.sparkVersion }}"
+    {{- if .Values.executorAnnotations }}
+    annotations: {{- toYaml .Values.executorAnnotations | nindent 6 }}
+    {{- end }}
+  sparkUIOptions:
+  {{- with .Values.sparkUIOptions }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+  {{- with .Values.imagePullSecrets }}
+  imagePullSecrets:
+    {{- toYaml . | nindent 2 }}
+  {{- end }}
+  imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+  mainApplicationFile: "{{ .Values.mainApplicationFile }}"
+  mode: "{{ .Values.mode }}"
+  pythonVersion: "{{ .Values.pythonVersion }}"
+  restartPolicy:
+    type:  "{{ .Values.restartPolicy }}"
+  sparkVersion: "{{ .Values.sparkVersion }}"
+  type: "{{ .Values.type }}"
+  volumes:
+  {{- range .Values.volumes }}
+  - name: {{ .name }}
+    {{- if eq .type "emptyDir" }}
+    emptyDir: {}
+    {{- else if eq .type "configMap" }}
+    configMap:
+      name: {{ .configMapName }}
+    {{- else if eq .type "persistentVolumeClaim" }}
+    persistentVolumeClaim:
+      claimName: {{ .claimName }}
+    {{- end }}
+  {{- end }}
+  monitoring:
+  {{- with .Values.monitoring }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end -}}
+{{- end -}}

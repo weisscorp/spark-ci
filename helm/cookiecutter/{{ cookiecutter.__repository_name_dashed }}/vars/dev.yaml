@@ -1,0 +1,13 @@
+driverAnnotations:
+  vault.security.banzaicloud.io/vault-role: "dev-service-account"
+  vault.security.banzaicloud.io/vault-path: "dev-cluster"
+
+# driver:
+#   coreLimit: 1200m
+#   cores: 1
+#   memory: 512m
+
+# executor:
+#   cores: 1
+#   instances: 1
+#   memory: 512m

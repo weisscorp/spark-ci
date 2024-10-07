@@ -1,0 +1,9 @@
+apiVersion: v2
+name: templates
+description: A templates chart with templates to be used by parrents services
+
+type: library
+
+version: 0.1.0
+
+appVersion: 0.1.0

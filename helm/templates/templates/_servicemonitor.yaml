@@ -1,0 +1,33 @@
+{{- define "templates.servicemonitor" -}}
+{{- $templates := dict "Values" .Values.templates -}}
+{{- $noTemplates := omit .Values "templates" -}}
+{{- $overrides := dict "Values" $noTemplates -}}
+{{- $noValues := omit . "Values" -}}
+{{- with merge $noValues $overrides $templates -}}
+
+{{- if and (.Values.metrics.enabled) (eq .Values.metrics.kind "ServiceMonitor") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "templates.fullname" . }}
+  labels:
+    {{- with .Values.metrics.serviceMonitorLabels }}
+        {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- include "templates.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "templates.selectorLabels" . | nindent 6 }}
+  endpoints:
+  {{- range .Values.metrics.endpoints }}
+  - port:  {{ .name | default "metrics" }}
+    interval: {{ .interval | default "30s" }}
+    path: {{ .path | default "/metrics"}}
+  {{- end }}
+  namespaceSelector:
+    any: true
+
+{{- end -}}
+{{- end -}}
+{{- end -}}

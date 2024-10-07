@@ -1,0 +1,11 @@
+{
+    "repository_name": "Application.Name",
+    "__repository_name_underscored": "{{ cookiecutter.repository_name.strip().lower().replace('.', '_') }}",
+    "__repository_name_dashed": "{{ cookiecutter.repository_name.strip().lower().replace('.', '-') }}",
+    "__repository_name_dotted": "{{ cookiecutter.repository_name.strip().lower() }}",
+    "_extensions": ["local_extensions.multiple_choice_filter"],
+    "__selected_configmaps": "{{ 'clickhouse-c1-configmap, clickhouse-c2-configmap, clickhouse-c3-configmap, greenplum-c1-configmap, kafka-c1-configmap, kafka-c2-configmap' | multiple_choice_filter }}",
+    "_copy_without_render": [
+        "templates/*"
+    ]
+}
